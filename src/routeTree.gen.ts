@@ -9,38 +9,137 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppPayrollRouteImport } from './routes/_app/payroll'
+import { Route as AppEmployeesRouteImport } from './routes/_app/employees'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppComponentsRouteImport } from './routes/_app/components'
+import { Route as AppCompareRouteImport } from './routes/_app/compare'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppPayrollRoute = AppPayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEmployeesRoute = AppEmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComponentsRoute = AppComponentsRouteImport.update({
+  id: '/components',
+  path: '/components',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCompareRoute = AppCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/compare': typeof AppCompareRoute
+  '/components': typeof AppComponentsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/employees': typeof AppEmployeesRoute
+  '/payroll': typeof AppPayrollRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/compare': typeof AppCompareRoute
+  '/components': typeof AppComponentsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/employees': typeof AppEmployeesRoute
+  '/payroll': typeof AppPayrollRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/compare': typeof AppCompareRoute
+  '/_app/components': typeof AppComponentsRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/employees': typeof AppEmployeesRoute
+  '/_app/payroll': typeof AppPayrollRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/compare'
+    | '/components'
+    | '/dashboard'
+    | '/employees'
+    | '/payroll'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/compare'
+    | '/components'
+    | '/dashboard'
+    | '/employees'
+    | '/payroll'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/compare'
+    | '/_app/components'
+    | '/_app/dashboard'
+    | '/_app/employees'
+    | '/_app/payroll'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +147,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/payroll': {
+      id: '/_app/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof AppPayrollRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/employees': {
+      id: '/_app/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof AppEmployeesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/components': {
+      id: '/_app/components'
+      path: '/components'
+      fullPath: '/components'
+      preLoaderRoute: typeof AppComponentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compare': {
+      id: '/_app/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof AppCompareRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppCompareRoute: typeof AppCompareRoute
+  AppComponentsRoute: typeof AppComponentsRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppEmployeesRoute: typeof AppEmployeesRoute
+  AppPayrollRoute: typeof AppPayrollRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppCompareRoute: AppCompareRoute,
+  AppComponentsRoute: AppComponentsRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppEmployeesRoute: AppEmployeesRoute,
+  AppPayrollRoute: AppPayrollRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
