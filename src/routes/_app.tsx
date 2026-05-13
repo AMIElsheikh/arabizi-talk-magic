@@ -13,6 +13,7 @@ export const Route = createFileRoute("/_app")({
 const nav = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { to: "/employees", label: "الموظفين", icon: Users },
+  { to: "/departments", label: "الأقسام", icon: Building2 },
   { to: "/components", label: "بنود المرتب", icon: ListChecks },
   { to: "/payroll", label: "إدخال المرتبات", icon: FileSpreadsheet },
   { to: "/compare", label: "المقارنة الشهرية", icon: GitCompare },
