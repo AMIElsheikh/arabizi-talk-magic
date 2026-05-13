@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_settings: {
+        Row: {
+          address: string | null
+          commercial_register: string | null
+          company_name: string | null
+          created_at: string
+          currency: string
+          email: string | null
+          id: string
+          large_diff_threshold: number
+          logo_url: string | null
+          notes: string | null
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          commercial_register?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          large_diff_threshold?: number
+          logo_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          commercial_register?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          large_diff_threshold?: number
+          logo_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string

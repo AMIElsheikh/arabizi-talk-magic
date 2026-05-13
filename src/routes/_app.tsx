@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, ListChecks, FileSpreadsheet, GitCompare, LogOut, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, ListChecks, FileSpreadsheet, GitCompare, LogOut, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app")({
@@ -16,6 +16,7 @@ const nav = [
   { to: "/components", label: "بنود المرتب", icon: ListChecks },
   { to: "/payroll", label: "إدخال المرتبات", icon: FileSpreadsheet },
   { to: "/compare", label: "المقارنة الشهرية", icon: GitCompare },
+  { to: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
 function AppLayout() {
