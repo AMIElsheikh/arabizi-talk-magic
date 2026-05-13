@@ -65,10 +65,41 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string
           department: string | null
+          department_id: string | null
           employee_code: string
           full_name: string
           id: string
@@ -80,6 +111,7 @@ export type Database = {
         Insert: {
           created_at?: string
           department?: string | null
+          department_id?: string | null
           employee_code: string
           full_name: string
           id?: string
@@ -91,6 +123,7 @@ export type Database = {
         Update: {
           created_at?: string
           department?: string | null
+          department_id?: string | null
           employee_code?: string
           full_name?: string
           id?: string
@@ -99,7 +132,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +17,17 @@ export const Route = createFileRoute("/_app/employees")({
   component: EmployeesPage,
 });
 
-type Emp = { id?: string; employee_code: string; full_name: string; position: string; department: string; is_active: boolean };
+type Emp = {
+  id?: string;
+  employee_code: string;
+  full_name: string;
+  position: string;
+  department: string;
+  department_id: string | null;
+  is_active: boolean;
+};
+
+const NONE = "__none__";
 
 function EmployeesPage() {
   const qc = useQueryClient();
@@ -29,19 +40,43 @@ function EmployeesPage() {
     },
   });
 
+  const { data: depts = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("departments").select("*").order("display_order").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const deptMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    depts.forEach((d: any) => { m[d.id] = d.name; });
+    return m;
+  }, [depts]);
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Emp | null>(null);
+  const [filterDept, setFilterDept] = useState<string>("all");
 
-  const empty: Emp = { employee_code: "", full_name: "", position: "", department: "", is_active: true };
+  const empty: Emp = { employee_code: "", full_name: "", position: "", department: "", department_id: null, is_active: true };
   const [form, setForm] = useState<Emp>(empty);
 
   const openNew = () => { setEditing(null); setForm(empty); setOpen(true); };
-  const openEdit = (e: any) => { setEditing(e); setForm(e); setOpen(true); };
+  const openEdit = (e: any) => { setEditing(e); setForm({ ...empty, ...e }); setOpen(true); };
 
   const save = async () => {
     if (!form.employee_code || !form.full_name) return toast.error("الكود والاسم مطلوبين");
     const user = (await supabase.auth.getUser()).data.user!;
-    const payload = { ...form, user_id: user.id };
+    const payload: any = {
+      user_id: user.id,
+      employee_code: form.employee_code,
+      full_name: form.full_name,
+      position: form.position || null,
+      department_id: form.department_id || null,
+      department: form.department_id ? (deptMap[form.department_id] || null) : (form.department || null),
+      is_active: form.is_active,
+    };
     const { error } = editing
       ? await supabase.from("employees").update(payload).eq("id", editing.id!)
       : await supabase.from("employees").insert(payload);
@@ -49,6 +84,7 @@ function EmployeesPage() {
     toast.success("تم الحفظ");
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["employees"] });
+    qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
   };
 
   const remove = async (id: string) => {
@@ -59,28 +95,50 @@ function EmployeesPage() {
     qc.invalidateQueries({ queryKey: ["employees"] });
   };
 
+  const filtered = data.filter((e: any) => filterDept === "all" ? true : (filterDept === NONE ? !e.department_id : e.department_id === filterDept));
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold">الموظفين</h1>
-          <p className="text-muted-foreground mt-1">إدارة بيانات الموظفين</p>
+          <p className="text-muted-foreground mt-1">إدارة بيانات الموظفين وتوزيعهم على الأقسام</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" /> إضافة موظف</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editing ? "تعديل موظف" : "موظف جديد"}</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>الكود الوظيفي</Label><Input value={form.employee_code} onChange={(e) => setForm({ ...form, employee_code: e.target.value })} /></div>
-              <div><Label>الاسم الكامل</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
-              <div><Label>المسمى الوظيفي</Label><Input value={form.position || ""} onChange={(e) => setForm({ ...form, position: e.target.value })} /></div>
-              <div><Label>الإدارة</Label><Input value={form.department || ""} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-            </div>
-            <DialogFooter><Button onClick={save}>حفظ</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2 items-center">
+          <Select value={filterDept} onValueChange={setFilterDept}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="فلترة بالقسم" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الأقسام</SelectItem>
+              <SelectItem value={NONE}>بدون قسم</SelectItem>
+              {depts.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" /> إضافة موظف</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{editing ? "تعديل موظف" : "موظف جديد"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>الكود الوظيفي</Label><Input value={form.employee_code} onChange={(e) => setForm({ ...form, employee_code: e.target.value })} /></div>
+                <div><Label>الاسم الكامل</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+                <div><Label>المسمى الوظيفي</Label><Input value={form.position || ""} onChange={(e) => setForm({ ...form, position: e.target.value })} /></div>
+                <div>
+                  <Label>القسم</Label>
+                  <Select value={form.department_id || NONE} onValueChange={(v) => setForm({ ...form, department_id: v === NONE ? null : v })}>
+                    <SelectTrigger><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>بدون قسم</SelectItem>
+                      {depts.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {depts.length === 0 && <p className="text-xs text-muted-foreground mt-1">لا توجد أقسام بعد. أضف الأقسام من صفحة "الأقسام".</p>}
+                </div>
+              </div>
+              <DialogFooter><Button onClick={save}>حفظ</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -91,19 +149,19 @@ function EmployeesPage() {
                 <TableHead className="text-right">الكود</TableHead>
                 <TableHead className="text-right">الاسم</TableHead>
                 <TableHead className="text-right">المسمى</TableHead>
-                <TableHead className="text-right">الإدارة</TableHead>
+                <TableHead className="text-right">القسم</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">لا يوجد موظفين بعد</TableCell></TableRow>}
-              {data.map((e: any) => (
+              {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">لا يوجد موظفين</TableCell></TableRow>}
+              {filtered.map((e: any) => (
                 <TableRow key={e.id}>
                   <TableCell className="font-mono">{e.employee_code}</TableCell>
                   <TableCell className="font-medium">{e.full_name}</TableCell>
                   <TableCell>{e.position || "-"}</TableCell>
-                  <TableCell>{e.department || "-"}</TableCell>
+                  <TableCell>{e.department_id ? (deptMap[e.department_id] || "-") : (e.department || "-")}</TableCell>
                   <TableCell>{e.is_active ? <Badge>نشط</Badge> : <Badge variant="secondary">غير نشط</Badge>}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">

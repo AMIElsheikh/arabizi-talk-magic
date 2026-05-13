@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppPayrollRouteImport } from './routes/_app/payroll'
 import { Route as AppEmployeesRouteImport } from './routes/_app/employees'
+import { Route as AppDepartmentsRouteImport } from './routes/_app/departments'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppComponentsRouteImport } from './routes/_app/components'
 import { Route as AppCompareRouteImport } from './routes/_app/compare'
@@ -48,6 +49,11 @@ const AppEmployeesRoute = AppEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDepartmentsRoute = AppDepartmentsRouteImport.update({
+  id: '/departments',
+  path: '/departments',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof AppCompareRoute
   '/components': typeof AppComponentsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/departments': typeof AppDepartmentsRoute
   '/employees': typeof AppEmployeesRoute
   '/payroll': typeof AppPayrollRoute
   '/settings': typeof AppSettingsRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/compare': typeof AppCompareRoute
   '/components': typeof AppComponentsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/departments': typeof AppDepartmentsRoute
   '/employees': typeof AppEmployeesRoute
   '/payroll': typeof AppPayrollRoute
   '/settings': typeof AppSettingsRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/_app/compare': typeof AppCompareRoute
   '/_app/components': typeof AppComponentsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/departments': typeof AppDepartmentsRoute
   '/_app/employees': typeof AppEmployeesRoute
   '/_app/payroll': typeof AppPayrollRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/components'
     | '/dashboard'
+    | '/departments'
     | '/employees'
     | '/payroll'
     | '/settings'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/components'
     | '/dashboard'
+    | '/departments'
     | '/employees'
     | '/payroll'
     | '/settings'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/_app/compare'
     | '/_app/components'
     | '/_app/dashboard'
+    | '/_app/departments'
     | '/_app/employees'
     | '/_app/payroll'
     | '/_app/settings'
@@ -180,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEmployeesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/departments': {
+      id: '/_app/departments'
+      path: '/departments'
+      fullPath: '/departments'
+      preLoaderRoute: typeof AppDepartmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -208,6 +227,7 @@ interface AppRouteChildren {
   AppCompareRoute: typeof AppCompareRoute
   AppComponentsRoute: typeof AppComponentsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDepartmentsRoute: typeof AppDepartmentsRoute
   AppEmployeesRoute: typeof AppEmployeesRoute
   AppPayrollRoute: typeof AppPayrollRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -217,6 +237,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCompareRoute: AppCompareRoute,
   AppComponentsRoute: AppComponentsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDepartmentsRoute: AppDepartmentsRoute,
   AppEmployeesRoute: AppEmployeesRoute,
   AppPayrollRoute: AppPayrollRoute,
   AppSettingsRoute: AppSettingsRoute,
