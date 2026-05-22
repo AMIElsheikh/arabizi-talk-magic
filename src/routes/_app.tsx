@@ -1,9 +1,11 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
+import { useRole } from "@/hooks/use-role";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +17,7 @@ import {
   Settings,
   Building2,
   Menu,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +25,7 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
-const nav = [
+const baseNav = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { to: "/employees", label: "الموظفين", icon: Users },
   { to: "/departments", label: "الأقسام", icon: Building2 },
@@ -32,7 +35,6 @@ const nav = [
   { to: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
-// Bottom-bar shortcuts on mobile (most-used 5)
 const bottomNav = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { to: "/employees", label: "الموظفين", icon: Users },
@@ -40,11 +42,17 @@ const bottomNav = [
   { to: "/compare", label: "المقارنة", icon: GitCompare },
 ];
 
+const roleLabel: Record<string, string> = { admin: "مدير", editor: "محرر", viewer: "مشاهد" };
+
+
 function AppLayout() {
   const { user, loading } = useAuth();
+  const { role, isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const nav = useMemo(() => isAdmin ? [...baseNav, { to: "/users", label: "المستخدمين", icon: ShieldCheck }] : baseNav, [isAdmin]);
+
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -97,7 +105,10 @@ function AppLayout() {
         })}
       </nav>
       <div className="border-t border-sidebar-border pt-3 mt-3">
-        <div className="px-3 py-2 text-xs opacity-70 truncate">{user.email}</div>
+        <div className="px-3 py-2 text-xs opacity-70 truncate flex items-center gap-2">
+          <span className="truncate">{user.email}</span>
+          {role && <Badge variant="secondary" className="text-[10px] shrink-0">{roleLabel[role]}</Badge>}
+        </div>
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={logout}>
           <LogOut className="w-4 h-4 ml-2" />
           تسجيل الخروج
