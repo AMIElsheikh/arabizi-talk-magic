@@ -162,6 +162,9 @@ function EmployeesPage() {
               {depts.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 ml-1" /> قالب Excel</Button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importExcel(f); e.target.value = ""; }} />
+          <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 ml-1" /> رفع من Excel</Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" /> إضافة موظف</Button>
