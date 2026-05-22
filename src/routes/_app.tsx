@@ -47,9 +47,12 @@ const roleLabel: Record<string, string> = { admin: "مدير", editor: "محرر
 
 function AppLayout() {
   const { user, loading } = useAuth();
+  const { role, isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const nav = useMemo(() => isAdmin ? [...baseNav, { to: "/users", label: "المستخدمين", icon: ShieldCheck }] : baseNav, [isAdmin]);
+
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
