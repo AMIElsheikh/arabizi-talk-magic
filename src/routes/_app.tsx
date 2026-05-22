@@ -105,7 +105,10 @@ function AppLayout() {
         })}
       </nav>
       <div className="border-t border-sidebar-border pt-3 mt-3">
-        <div className="px-3 py-2 text-xs opacity-70 truncate">{user.email}</div>
+        <div className="px-3 py-2 text-xs opacity-70 truncate flex items-center gap-2">
+          <span className="truncate">{user.email}</span>
+          {role && <Badge variant="secondary" className="text-[10px] shrink-0">{roleLabel[role]}</Badge>}
+        </div>
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={logout}>
           <LogOut className="w-4 h-4 ml-2" />
           تسجيل الخروج
