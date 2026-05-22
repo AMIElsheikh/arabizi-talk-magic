@@ -1,9 +1,11 @@
 import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
+import { useRole } from "@/hooks/use-role";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +17,7 @@ import {
   Settings,
   Building2,
   Menu,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +25,7 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
-const nav = [
+const baseNav = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { to: "/employees", label: "الموظفين", icon: Users },
   { to: "/departments", label: "الأقسام", icon: Building2 },
@@ -32,13 +35,15 @@ const nav = [
   { to: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
-// Bottom-bar shortcuts on mobile (most-used 5)
 const bottomNav = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { to: "/employees", label: "الموظفين", icon: Users },
   { to: "/payroll", label: "المرتبات", icon: FileSpreadsheet },
   { to: "/compare", label: "المقارنة", icon: GitCompare },
 ];
+
+const roleLabel: Record<string, string> = { admin: "مدير", editor: "محرر", viewer: "مشاهد" };
+
 
 function AppLayout() {
   const { user, loading } = useAuth();
