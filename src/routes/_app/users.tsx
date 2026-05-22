@@ -48,7 +48,7 @@ function UsersPage() {
   profiles.forEach((p: any) => { profileMap[p.id] = p; });
 
   const changeRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from("user_roles").update({ role, granted_by: user?.id }).eq("user_id", userId);
+    const { error } = await supabase.from("user_roles").update({ role: role as any, granted_by: user?.id }).eq("user_id", userId);
     if (error) return toast.error(error.message);
     toast.success("تم تحديث الصلاحية");
     qc.invalidateQueries({ queryKey: ["all-user-roles"] });
