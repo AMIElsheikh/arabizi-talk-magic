@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import { useRef } from "react";
 
 export const Route = createFileRoute("/_app/employees")({
   component: EmployeesPage,
@@ -97,6 +99,53 @@ function EmployeesPage() {
 
   const filtered = data.filter((e: any) => filterDept === "all" ? true : (filterDept === NONE ? !e.department_id : e.department_id === filterDept));
 
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["employee_code", "full_name", "position", "department"],
+      ["E001", "محمد أحمد", "موظف", depts[0]?.name || "مطار الإسكندرية الدولي"],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "employees");
+    XLSX.writeFile(wb, "employees_template.xlsx");
+  };
+
+  const importExcel = async (file: File) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      if (!rows.length) return toast.error("الملف فارغ");
+      const user = (await supabase.auth.getUser()).data.user!;
+      const deptByName: Record<string, string> = {};
+      depts.forEach((d: any) => { deptByName[String(d.name).trim()] = d.id; });
+      const payload = rows.map((r) => {
+        const code = String(r.employee_code ?? r.code ?? r["الكود"] ?? "").trim();
+        const name = String(r.full_name ?? r.name ?? r["الاسم"] ?? "").trim();
+        const position = String(r.position ?? r["المسمى"] ?? "").trim();
+        const deptName = String(r.department ?? r["القسم"] ?? "").trim();
+        return {
+          user_id: user.id,
+          employee_code: code,
+          full_name: name,
+          position: position || null,
+          department: deptName || null,
+          department_id: deptByName[deptName] || null,
+          is_active: true,
+        };
+      }).filter((r) => r.employee_code && r.full_name);
+      if (!payload.length) return toast.error("لا توجد بيانات صالحة (الكود والاسم مطلوبين)");
+      const { error } = await supabase.from("employees").insert(payload);
+      if (error) return toast.error(error.message);
+      toast.success(`تم استيراد ${payload.length} موظف`);
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    } catch (err: any) {
+      toast.error("فشل قراءة الملف: " + (err.message || err));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -113,6 +162,9 @@ function EmployeesPage() {
               {depts.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 ml-1" /> قالب Excel</Button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importExcel(f); e.target.value = ""; }} />
+          <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 ml-1" /> رفع من Excel</Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew}><Plus className="w-4 h-4 ml-1" /> إضافة موظف</Button>
