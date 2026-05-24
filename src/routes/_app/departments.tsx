@@ -67,10 +67,11 @@ function DepartmentsPage() {
     queryKey: ["dept-employees", activeDept?.id],
     enabled: !!activeDept?.id,
     queryFn: async () => {
+      if (!activeDept?.id) return [];
       const { data, error } = await supabase
         .from("employees")
         .select("*")
-        .eq("department_id", activeDept!.id)
+        .eq("department_id", activeDept.id)
         .order("employee_code");
       if (error) throw error;
       return data || [];
