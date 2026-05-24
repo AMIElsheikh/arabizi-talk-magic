@@ -116,16 +116,52 @@ function EmployeesPage() {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf);
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      if (!rows.length) return toast.error("الملف فارغ");
+      const aoa: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
+      if (!aoa.length) return toast.error("الملف فارغ");
+
+      const codeKeys = ["employee_code", "code", "كود", "الكود", "الكود الوظيفي", "رقم", "الرقم", "رقم الموظف", "id"];
+      const nameKeys = ["full_name", "name", "اسم", "الاسم", "اسم الموظف", "الاسم الكامل"];
+      const posKeys = ["position", "المسمى", "الوظيفة", "المسمى الوظيفي", "الوظيفه"];
+      const deptKeys = ["department", "قسم", "القسم", "الإدارة", "الاداره"];
+
+      const norm = (s: any) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+      const matchIdx = (headers: string[], keys: string[]) => {
+        const ks = keys.map(norm);
+        return headers.findIndex((h) => ks.includes(norm(h)));
+      };
+
+      let headerRow = -1, cCode = -1, cName = -1, cPos = -1, cDept = -1;
+      for (let i = 0; i < Math.min(aoa.length, 10); i++) {
+        const row = aoa[i].map((x) => String(x ?? ""));
+        const ic = matchIdx(row, codeKeys);
+        const ina = matchIdx(row, nameKeys);
+        if (ic >= 0 && ina >= 0) {
+          headerRow = i; cCode = ic; cName = ina;
+          cPos = matchIdx(row, posKeys);
+          cDept = matchIdx(row, deptKeys);
+          break;
+        }
+      }
+
+      let dataRows: any[][];
+      if (headerRow === -1) {
+        // Fallback: assume positional [code, name, position, department] starting from first non-empty row
+        dataRows = aoa;
+        cCode = 0; cName = 1; cPos = 2; cDept = 3;
+      } else {
+        dataRows = aoa.slice(headerRow + 1);
+      }
+
+      const fileDept = file.name.replace(/\.(xlsx|xls|csv)$/i, "").trim();
       const user = (await supabase.auth.getUser()).data.user!;
       const deptByName: Record<string, string> = {};
       depts.forEach((d: any) => { deptByName[String(d.name).trim()] = d.id; });
-      const payload = rows.map((r) => {
-        const code = String(r.employee_code ?? r.code ?? r["الكود"] ?? "").trim();
-        const name = String(r.full_name ?? r.name ?? r["الاسم"] ?? "").trim();
-        const position = String(r.position ?? r["المسمى"] ?? "").trim();
-        const deptName = String(r.department ?? r["القسم"] ?? "").trim();
+
+      const payload = dataRows.map((r) => {
+        const code = String(r[cCode] ?? "").trim();
+        const name = String(r[cName] ?? "").trim();
+        const position = cPos >= 0 ? String(r[cPos] ?? "").trim() : "";
+        const deptName = (cDept >= 0 ? String(r[cDept] ?? "").trim() : "") || fileDept;
         return {
           user_id: user.id,
           employee_code: code,
@@ -136,10 +172,23 @@ function EmployeesPage() {
           is_active: true,
         };
       }).filter((r) => r.employee_code && r.full_name);
-      if (!payload.length) return toast.error("لا توجد بيانات صالحة (الكود والاسم مطلوبين)");
-      const { error } = await supabase.from("employees").insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success(`تم استيراد ${payload.length} موظف`);
+
+      if (!payload.length) {
+        const sample = (aoa[0] || []).slice(0, 6).join(" | ");
+        return toast.error(`لا توجد بيانات صالحة. تأكد من وجود عمود للكود وعمود للاسم. أول صف: ${sample}`);
+      }
+
+      const BATCH = 500;
+      let inserted = 0;
+      const errors: string[] = [];
+      for (let i = 0; i < payload.length; i += BATCH) {
+        const chunk = payload.slice(i, i + BATCH);
+        const { error } = await supabase.from("employees").insert(chunk);
+        if (error) { errors.push(error.message); continue; }
+        inserted += chunk.length;
+      }
+      if (inserted === 0) return toast.error("فشل الاستيراد: " + (errors[0] || "خطأ غير معروف"));
+      toast.success(`تم استيراد ${inserted} موظف${errors.length ? ` (${errors.length} دفعة فشلت)` : ""}`);
       qc.invalidateQueries({ queryKey: ["employees"] });
     } catch (err: any) {
       toast.error("فشل قراءة الملف: " + (err.message || err));
