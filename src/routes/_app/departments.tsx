@@ -20,9 +20,11 @@ export const Route = createFileRoute("/_app/departments")({
 });
 
 type Dept = { id?: string; name: string; description: string; display_order: number };
+type Emp = { id?: string; employee_code: string; full_name: string; position: string; department_id: string | null };
 
 function DepartmentsPage() {
   const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: depts = [] } = useQuery({
     queryKey: ["departments"],
@@ -54,6 +56,26 @@ function DepartmentsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Dept | null>(null);
   const [form, setForm] = useState<Dept>(empty);
+
+  // Employees modal per department
+  const [activeDept, setActiveDept] = useState<Dept | null>(null);
+  const [empOpen, setEmpOpen] = useState(false);
+  const [addEmpOpen, setAddEmpOpen] = useState(false);
+  const [empForm, setEmpForm] = useState<Emp>({ employee_code: "", full_name: "", position: "", department_id: null });
+
+  const { data: deptEmployees = [] } = useQuery({
+    queryKey: ["dept-employees", activeDept?.id],
+    enabled: !!activeDept?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("department_id", activeDept!.id)
+        .order("employee_code");
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const openNew = () => { setEditing(null); setForm({ ...empty, display_order: depts.length + 1 }); setOpen(true); };
   const openEdit = (d: any) => { setEditing(d); setForm(d); setOpen(true); };
