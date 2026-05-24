@@ -294,6 +294,7 @@ function DepartmentsPage() {
                   <TableCell><Badge variant="secondary">{empCounts[d.id] || 0}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => openDeptEmployees(d)}><Users className="w-4 h-4 ml-1" /> الموظفين</Button>
                       <Button size="icon" variant="ghost" onClick={() => openEdit(d)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => remove(d.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
@@ -304,6 +305,70 @@ function DepartmentsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Department Employees Dialog */}
+      <Dialog open={empOpen} onOpenChange={setEmpOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>موظفين {activeDept?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2 items-center">
+              <Button onClick={openAddEmployee}><Plus className="w-4 h-4 ml-1" /> إضافة موظف</Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) importExcelForDept(f); e.target.value = ""; }}
+              />
+              <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 ml-1" /> رفع Excel</Button>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">الكود</TableHead>
+                      <TableHead className="text-right">الاسم</TableHead>
+                      <TableHead className="text-right">المسمى</TableHead>
+                      <TableHead className="text-right"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deptEmployees.length === 0 && (
+                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">لا يوجد موظفين في هذا القسم</TableCell></TableRow>
+                    )}
+                    {deptEmployees.map((e: any) => (
+                      <TableRow key={e.id}>
+                        <TableCell className="font-mono">{e.employee_code}</TableCell>
+                        <TableCell className="font-medium">{e.full_name}</TableCell>
+                        <TableCell>{e.position || "-"}</TableCell>
+                        <TableCell>
+                          <Button size="icon" variant="ghost" onClick={() => deleteEmployee(e.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Employee Dialog */}
+      <Dialog open={addEmpOpen} onOpenChange={setAddEmpOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>إضافة موظف لـ {activeDept?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>الكود الوظيفي</Label><Input value={empForm.employee_code} onChange={(e) => setEmpForm({ ...empForm, employee_code: e.target.value })} /></div>
+            <div><Label>الاسم الكامل</Label><Input value={empForm.full_name} onChange={(e) => setEmpForm({ ...empForm, full_name: e.target.value })} /></div>
+            <div><Label>المسمى الوظيفي</Label><Input value={empForm.position || ""} onChange={(e) => setEmpForm({ ...empForm, position: e.target.value })} /></div>
+          </div>
+          <DialogFooter><Button onClick={saveEmployee}>حفظ</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
