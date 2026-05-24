@@ -122,6 +122,124 @@ function DepartmentsPage() {
     qc.invalidateQueries({ queryKey: ["departments"] });
   };
 
+  // Employee management inside department
+  const openDeptEmployees = (dept: any) => {
+    setActiveDept(dept);
+    setEmpOpen(true);
+  };
+
+  const openAddEmployee = () => {
+    setEmpForm({ employee_code: "", full_name: "", position: "", department_id: activeDept?.id || null });
+    setAddEmpOpen(true);
+  };
+
+  const saveEmployee = async () => {
+    if (!empForm.employee_code || !empForm.full_name || !activeDept?.id) return toast.error("الكود والاسم مطلوبين");
+    const user = (await supabase.auth.getUser()).data.user!;
+    const payload = {
+      user_id: user.id,
+      employee_code: empForm.employee_code.trim(),
+      full_name: empForm.full_name.trim(),
+      position: empForm.position?.trim() || null,
+      department_id: activeDept.id,
+      department: activeDept.name,
+      is_active: true,
+    };
+    const { error } = await supabase.from("employees").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("تم إضافة الموظف");
+    setAddEmpOpen(false);
+    qc.invalidateQueries({ queryKey: ["dept-employees", activeDept.id] });
+    qc.invalidateQueries({ queryKey: ["employees"] });
+    qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
+  };
+
+  const deleteEmployee = async (id: string) => {
+    if (!confirm("تأكيد حذف الموظف؟")) return;
+    const { error } = await supabase.from("employees").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("تم الحذف");
+    qc.invalidateQueries({ queryKey: ["dept-employees", activeDept?.id] });
+    qc.invalidateQueries({ queryKey: ["employees"] });
+    qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
+  };
+
+  const importExcelForDept = async (file: File) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
+      if (!aoa.length) return toast.error("الملف فارغ");
+
+      const codeKeys = ["employee_code", "code", "كود", "الكود", "الكود الوظيفي", "رقم", "الرقم", "رقم الموظف", "id"];
+      const nameKeys = ["full_name", "name", "اسم", "الاسم", "اسم الموظف", "الاسم الكامل"];
+      const posKeys = ["position", "المسمى", "الوظيفة", "المسمى الوظيفي", "الوظيفه"];
+
+      const norm = (s: any) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+      const matchIdx = (headers: string[], keys: string[]) => {
+        const ks = keys.map(norm);
+        return headers.findIndex((h) => ks.includes(norm(h)));
+      };
+
+      let headerRow = -1, cCode = -1, cName = -1, cPos = -1;
+      for (let i = 0; i < Math.min(aoa.length, 10); i++) {
+        const row = aoa[i].map((x) => String(x ?? ""));
+        const ic = matchIdx(row, codeKeys);
+        const ina = matchIdx(row, nameKeys);
+        if (ic >= 0 && ina >= 0) {
+          headerRow = i; cCode = ic; cName = ina;
+          cPos = matchIdx(row, posKeys);
+          break;
+        }
+      }
+
+      let dataRows: any[][];
+      if (headerRow === -1) {
+        dataRows = aoa;
+        cCode = 0; cName = 1; cPos = 2;
+      } else {
+        dataRows = aoa.slice(headerRow + 1);
+      }
+
+      if (!activeDept?.id) return toast.error("اختر القسم أولاً");
+      const user = (await supabase.auth.getUser()).data.user!;
+      const payload = dataRows.map((r) => {
+        const code = String(r[cCode] ?? "").trim();
+        const name = String(r[cName] ?? "").trim();
+        const position = cPos >= 0 ? String(r[cPos] ?? "").trim() : "";
+        return {
+          user_id: user.id,
+          employee_code: code,
+          full_name: name,
+          position: position || null,
+          department_id: activeDept.id,
+          department: activeDept.name,
+          is_active: true,
+        };
+      }).filter((r) => r.employee_code && r.full_name);
+
+      if (!payload.length) return toast.error("لا توجد بيانات صالحة. تأكد من وجود عمود للكود وعمود للاسم.");
+
+      const BATCH = 500;
+      let inserted = 0;
+      const errors: string[] = [];
+      for (let i = 0; i < payload.length; i += BATCH) {
+        const chunk = payload.slice(i, i + BATCH);
+        const { error } = await supabase.from("employees").insert(chunk);
+        if (error) { errors.push(error.message); continue; }
+        inserted += chunk.length;
+      }
+      if (inserted === 0) return toast.error("فشل الاستيراد: " + (errors[0] || "خطأ غير معروف"));
+      toast.success(`تم استيراد ${inserted} موظف${errors.length ? ` (${errors.length} دفعة فشلت)` : ""}`);
+      qc.invalidateQueries({ queryKey: ["dept-employees", activeDept.id] });
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
+    } catch (err: any) {
+      toast.error("فشل قراءة الملف: " + (err.message || err));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
