@@ -277,12 +277,14 @@ function DepartmentsPage() {
       const errors: string[] = [];
       for (let i = 0; i < payload.length; i += BATCH) {
         const chunk = payload.slice(i, i + BATCH);
-        const { error } = await supabase.from("employees").insert(chunk);
+        const { error } = await supabase
+          .from("employees")
+          .upsert(chunk, { onConflict: "user_id,employee_code" });
         if (error) { errors.push(error.message); continue; }
         inserted += chunk.length;
       }
       if (inserted === 0) return toast.error("فشل الاستيراد: " + (errors[0] || "خطأ غير معروف"));
-      toast.success(`تم استيراد ${inserted} موظف${errors.length ? ` (${errors.length} دفعة فشلت)` : ""}`);
+      toast.success(`تم رفع/تحديث ${inserted} موظف في ${activeDept.name}${errors.length ? ` (${errors.length} دفعة فشلت)` : ""}`);
       qc.invalidateQueries({ queryKey: ["dept-employees", activeDept.id] });
       qc.invalidateQueries({ queryKey: ["employees"] });
       qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
