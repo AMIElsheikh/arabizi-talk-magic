@@ -122,6 +122,57 @@ function DepartmentsPage() {
     qc.invalidateQueries({ queryKey: ["departments"] });
   };
 
+  // Auto-distribute existing employees into departments by matching the
+  // employees.department text against departments.name (normalized).
+  const autoDistribute = async () => {
+    if (!depts.length) return toast.error("لا توجد أقسام");
+    const norm = (s: any) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    const byName: Record<string, string> = {};
+    depts.forEach((d: any) => { byName[norm(d.name)] = d.id; });
+
+    const { data: emps, error } = await supabase
+      .from("employees")
+      .select("id, department, department_id, full_name");
+    if (error) return toast.error(error.message);
+
+    const updates: { id: string; department_id: string; department: string }[] = [];
+    const unmatched = new Set<string>();
+    (emps || []).forEach((e: any) => {
+      const key = norm(e.department);
+      if (!key) return;
+      const did = byName[key];
+      if (did) {
+        if (e.department_id !== did) {
+          const deptName = depts.find((d: any) => d.id === did)?.name || e.department;
+          updates.push({ id: e.id, department_id: did, department: deptName });
+        }
+      } else {
+        unmatched.add(e.department);
+      }
+    });
+
+    if (!updates.length) {
+      const msg = unmatched.size
+        ? `لا يوجد تحديثات. أقسام غير مطابقة: ${Array.from(unmatched).slice(0, 5).join("، ")}`
+        : "كل الموظفين موزعين بالفعل";
+      return toast.info(msg);
+    }
+
+    let done = 0;
+    const errs: string[] = [];
+    for (const u of updates) {
+      const { error: uerr } = await supabase
+        .from("employees")
+        .update({ department_id: u.department_id, department: u.department })
+        .eq("id", u.id);
+      if (uerr) errs.push(uerr.message); else done++;
+    }
+    toast.success(`تم توزيع ${done} موظف${unmatched.size ? ` — ${unmatched.size} قسم غير مطابق` : ""}`);
+    qc.invalidateQueries({ queryKey: ["employees"] });
+    qc.invalidateQueries({ queryKey: ["employees-by-dept"] });
+    qc.invalidateQueries({ queryKey: ["dept-employees"] });
+  };
+
   // Employee management inside department
   const openDeptEmployees = (dept: any) => {
     setActiveDept(dept);
