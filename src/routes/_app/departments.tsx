@@ -126,7 +126,14 @@ function DepartmentsPage() {
   // employees.department text against departments.name (normalized).
   const autoDistribute = async () => {
     if (!depts.length) return toast.error("لا توجد أقسام");
-    const norm = (s: any) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    const norm = (s: any) => String(s ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\u064B-\u0652\u0670]/g, "") // remove tashkeel
+      .replace(/[إأآا]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .replace(/\s+/g, " ");
     const byName: Record<string, string> = {};
     depts.forEach((d: any) => { byName[norm(d.name)] = d.id; });
 
