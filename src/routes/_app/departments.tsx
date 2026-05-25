@@ -298,7 +298,10 @@ function DepartmentsPage() {
           <h1 className="text-3xl font-bold">الأقسام</h1>
           <p className="text-muted-foreground mt-1">إدارة الأقسام / الفروع / المطارات وتوزيع الموظفين</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={autoDistribute}>
+            <Shuffle className="w-4 h-4 ml-1" /> توزيع تلقائي حسب القسم
+          </Button>
           {depts.length === 0 && (
             <Button variant="outline" onClick={seedDefaults}>
               <Building2 className="w-4 h-4 ml-1" /> إضافة الأقسام الافتراضية
