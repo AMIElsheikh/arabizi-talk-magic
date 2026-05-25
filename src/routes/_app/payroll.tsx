@@ -120,27 +120,116 @@ function PayrollPage() {
   };
 
   const handleImport = async (file: File) => {
+    const user = (await supabase.auth.getUser()).data.user!;
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf);
     const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet);
-    const empByCode = new Map(employees.map((e: any) => [String(e.employee_code), e]));
-    const compByName = new Map(components.map((c: any) => [c.name, c]));
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    if (rows.length === 0) return toast.error("الملف فارغ");
+
+    // Identify identity columns (Arabic + English variants)
+    const CODE_KEYS = ["employee_code", "code", "الكود", "كود", "كود الموظف", "رقم", "الرقم"];
+    const NAME_KEYS = ["full_name", "name", "الاسم", "اسم الموظف", "الموظف"];
+    const POS_KEYS  = ["position", "المسمى", "الوظيفة", "المسمى الوظيفي"];
+    const DEPT_KEYS = ["department", "القسم", "الادارة", "الإدارة"];
+    const norm = (s: string) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const isIn = (k: string, arr: string[]) => arr.map(norm).includes(norm(k));
+    const toNum = (v: any) => {
+      if (v === "" || v == null) return 0;
+      if (typeof v === "number") return v;
+      const n = parseFloat(String(v).replace(/[^\d.\-]/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
+
+    // Detect deduction columns by keyword
+    const DEDUCTION_HINTS = ["خصم", "استقطاع", "تأمين", "تامين", "ضريبة", "ضرائب", "سلف", "سلفة", "جزاء", "غياب", "قسط"];
+    const isDeduction = (name: string) => DEDUCTION_HINTS.some((h) => name.includes(h));
+
+    // Collect all component column names from headers
+    const headerSet = new Set<string>();
+    rows.forEach((row) => {
+      Object.keys(row).forEach((k) => {
+        const key = k.trim();
+        if (!key) return;
+        if (isIn(key, CODE_KEYS) || isIn(key, NAME_KEYS) || isIn(key, POS_KEYS) || isIn(key, DEPT_KEYS)) return;
+        headerSet.add(key);
+      });
+    });
+
+    // Create missing salary components
+    const compByName = new Map(components.map((c: any) => [c.name.trim(), c]));
+    const newComps: any[] = [];
+    for (const name of headerSet) {
+      if (!compByName.has(name)) {
+        newComps.push({
+          user_id: user.id,
+          name,
+          type: isDeduction(name) ? "deduction" : "earning",
+          display_order: compByName.size + newComps.length,
+        });
+      }
+    }
+    if (newComps.length > 0) {
+      const { data: inserted, error } = await supabase.from("salary_components").insert(newComps).select();
+      if (error) return toast.error("فشل إنشاء البنود: " + error.message);
+      inserted?.forEach((c: any) => compByName.set(c.name.trim(), c));
+    }
+
+    // Create missing employees
+    const empByCode = new Map(employees.map((e: any) => [String(e.employee_code).trim(), e]));
+    const newEmps: any[] = [];
+    rows.forEach((row) => {
+      const codeKey = Object.keys(row).find((k) => isIn(k, CODE_KEYS));
+      const nameKey = Object.keys(row).find((k) => isIn(k, NAME_KEYS));
+      const posKey  = Object.keys(row).find((k) => isIn(k, POS_KEYS));
+      const deptKey = Object.keys(row).find((k) => isIn(k, DEPT_KEYS));
+      const code = codeKey ? String(row[codeKey]).trim() : "";
+      const name = nameKey ? String(row[nameKey]).trim() : "";
+      if (!code || !name) return;
+      if (!empByCode.has(code) && !newEmps.find((e) => e.employee_code === code)) {
+        newEmps.push({
+          user_id: user.id,
+          employee_code: code,
+          full_name: name,
+          position: posKey ? String(row[posKey] || "").trim() || null : null,
+          department: deptKey ? String(row[deptKey] || "").trim() || null : null,
+        });
+      }
+    });
+    if (newEmps.length > 0) {
+      const { data: insertedE, error } = await supabase
+        .from("employees")
+        .upsert(newEmps, { onConflict: "user_id,employee_code" })
+        .select();
+      if (error) return toast.error("فشل إنشاء الموظفين: " + error.message);
+      insertedE?.forEach((e: any) => empByCode.set(String(e.employee_code).trim(), e));
+    }
+
+    // Fill grid
     const g: Record<string, Record<string, number>> = { ...grid };
     let matched = 0;
     rows.forEach((row) => {
-      const code = String(row.employee_code || "").trim();
+      const codeKey = Object.keys(row).find((k) => isIn(k, CODE_KEYS));
+      const code = codeKey ? String(row[codeKey]).trim() : "";
       const emp = empByCode.get(code);
       if (!emp) return;
       g[emp.id] = g[emp.id] || {};
       Object.entries(row).forEach(([k, v]) => {
-        const comp = compByName.get(k);
-        if (comp && typeof v === "number") g[emp.id][comp.id] = v;
+        const key = k.trim();
+        const comp = compByName.get(key);
+        if (!comp) return;
+        g[emp.id][comp.id] = toNum(v);
       });
       matched++;
     });
     setGrid(g);
-    toast.success(`تم استيراد ${matched} موظف`);
+    qc.invalidateQueries({ queryKey: ["employees-active"] });
+    qc.invalidateQueries({ queryKey: ["components"] });
+    toast.success(
+      `تم استيراد ${matched} صف` +
+        (newEmps.length ? ` • ${newEmps.length} موظف جديد` : "") +
+        (newComps.length ? ` • ${newComps.length} بند جديد` : "")
+    );
   };
 
   return (
