@@ -265,3 +265,47 @@ function PayslipPage() {
     </div>
   );
 }
+
+function EmployeePicker({ employees, value, onChange }: { employees: any[]; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = employees.find((e) => e.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          {selected ? `${selected.full_name} — ${selected.employee_code}` : "اختر موظف"}
+          <ChevronsUpDown className="w-4 h-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command
+          filter={(val, search) => {
+            const s = search.trim().toLowerCase();
+            return val.toLowerCase().includes(s) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder="ابحث بالكود أو الاسم..." />
+          <CommandList>
+            <CommandEmpty>لا يوجد نتائج</CommandEmpty>
+            <CommandGroup>
+              {employees.map((e) => (
+                <CommandItem
+                  key={e.id}
+                  value={`${e.employee_code} ${e.full_name}`}
+                  onSelect={() => {
+                    onChange(e.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("ml-2 w-4 h-4", value === e.id ? "opacity-100" : "opacity-0")} />
+                  <span className="font-mono text-xs text-muted-foreground ml-2">{e.employee_code}</span>
+                  <span>{e.full_name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
