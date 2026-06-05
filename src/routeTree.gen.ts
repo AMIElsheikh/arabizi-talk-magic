@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppPayslipRouteImport } from './routes/_app/payslip'
 import { Route as AppPayrollRouteImport } from './routes/_app/payroll'
 import { Route as AppEmployeesRouteImport } from './routes/_app/employees'
 import { Route as AppDepartmentsRouteImport } from './routes/_app/departments'
@@ -43,6 +44,11 @@ const AppUsersRoute = AppUsersRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPayslipRoute = AppPayslipRouteImport.update({
+  id: '/payslip',
+  path: '/payslip',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPayrollRoute = AppPayrollRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/departments': typeof AppDepartmentsRoute
   '/employees': typeof AppEmployeesRoute
   '/payroll': typeof AppPayrollRoute
+  '/payslip': typeof AppPayslipRoute
   '/settings': typeof AppSettingsRoute
   '/users': typeof AppUsersRoute
 }
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/departments': typeof AppDepartmentsRoute
   '/employees': typeof AppEmployeesRoute
   '/payroll': typeof AppPayrollRoute
+  '/payslip': typeof AppPayslipRoute
   '/settings': typeof AppSettingsRoute
   '/users': typeof AppUsersRoute
 }
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_app/departments': typeof AppDepartmentsRoute
   '/_app/employees': typeof AppEmployeesRoute
   '/_app/payroll': typeof AppPayrollRoute
+  '/_app/payslip': typeof AppPayslipRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/users': typeof AppUsersRoute
 }
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/departments'
     | '/employees'
     | '/payroll'
+    | '/payslip'
     | '/settings'
     | '/users'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/departments'
     | '/employees'
     | '/payroll'
+    | '/payslip'
     | '/settings'
     | '/users'
   id:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_app/departments'
     | '/_app/employees'
     | '/_app/payroll'
+    | '/_app/payslip'
     | '/_app/settings'
     | '/_app/users'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/payslip': {
+      id: '/_app/payslip'
+      path: '/payslip'
+      fullPath: '/payslip'
+      preLoaderRoute: typeof AppPayslipRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/payroll': {
@@ -249,6 +268,7 @@ interface AppRouteChildren {
   AppDepartmentsRoute: typeof AppDepartmentsRoute
   AppEmployeesRoute: typeof AppEmployeesRoute
   AppPayrollRoute: typeof AppPayrollRoute
+  AppPayslipRoute: typeof AppPayslipRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppUsersRoute: typeof AppUsersRoute
 }
@@ -260,6 +280,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDepartmentsRoute: AppDepartmentsRoute,
   AppEmployeesRoute: AppEmployeesRoute,
   AppPayrollRoute: AppPayrollRoute,
+  AppPayslipRoute: AppPayslipRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppUsersRoute: AppUsersRoute,
 }
@@ -274,3 +295,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
