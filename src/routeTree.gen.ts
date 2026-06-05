@@ -56,11 +56,6 @@ const AppPayrollRoute = AppPayrollRouteImport.update({
   path: '/payroll',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPayslipRoute = AppPayslipRouteImport.update({
-  id: '/payslip',
-  path: '/payslip',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppEmployeesRoute = AppEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
