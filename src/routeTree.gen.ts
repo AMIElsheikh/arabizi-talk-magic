@@ -16,6 +16,7 @@ import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppPayslipRouteImport } from './routes/_app/payslip'
 import { Route as AppPayrollRouteImport } from './routes/_app/payroll'
+import { Route as AppPayslipRouteImport } from './routes/_app/payslip'
 import { Route as AppEmployeesRouteImport } from './routes/_app/employees'
 import { Route as AppDepartmentsRouteImport } from './routes/_app/departments'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -295,13 +296,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
