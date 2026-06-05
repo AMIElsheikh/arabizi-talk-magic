@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Printer, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/payslip")({
   component: PayslipPage,
@@ -100,16 +103,9 @@ function PayslipPage() {
 
       <Card className="print:hidden">
         <CardContent className="pt-6 flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-[240px]">
             <Label>الموظف</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger><SelectValue placeholder="اختر موظف" /></SelectTrigger>
-              <SelectContent>
-                {employees.map((e: any) => (
-                  <SelectItem key={e.id} value={e.id}>{e.full_name} — {e.employee_code}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EmployeePicker employees={employees} value={employeeId} onChange={setEmployeeId} />
           </div>
           <div>
             <Label>السنة</Label>
@@ -267,5 +263,49 @@ function PayslipPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+function EmployeePicker({ employees, value, onChange }: { employees: any[]; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = employees.find((e) => e.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          {selected ? `${selected.full_name} — ${selected.employee_code}` : "اختر موظف"}
+          <ChevronsUpDown className="w-4 h-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command
+          filter={(val, search) => {
+            const s = search.trim().toLowerCase();
+            return val.toLowerCase().includes(s) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder="ابحث بالكود أو الاسم..." />
+          <CommandList>
+            <CommandEmpty>لا يوجد نتائج</CommandEmpty>
+            <CommandGroup>
+              {employees.map((e) => (
+                <CommandItem
+                  key={e.id}
+                  value={`${e.employee_code} ${e.full_name}`}
+                  onSelect={() => {
+                    onChange(e.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("ml-2 w-4 h-4", value === e.id ? "opacity-100" : "opacity-0")} />
+                  <span className="font-mono text-xs text-muted-foreground ml-2">{e.employee_code}</span>
+                  <span>{e.full_name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
