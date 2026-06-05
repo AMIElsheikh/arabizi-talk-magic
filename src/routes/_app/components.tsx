@@ -109,37 +109,49 @@ function ComponentsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right">اسم البند</TableHead>
-                <TableHead className="text-right">النوع</TableHead>
-                <TableHead className="text-right">الترتيب</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">لا يوجد بنود — اضغط "إضافة بنود افتراضية" للبدء بسرعة</TableCell></TableRow>}
-              {data.map((c: any) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>
-                    {c.type === "earning"
-                      ? <Badge className="bg-success text-success-foreground">استحقاق</Badge>
-                      : <Badge variant="destructive">خصم</Badge>}
-                  </TableCell>
-                  <TableCell>{c.display_order}</TableCell>
-                  <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {data.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">لا يوجد بنود — اضغط "إضافة بنود افتراضية" للبدء بسرعة</CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {([
+            { key: "earning", title: "الاستحقاقات", badge: <Badge className="bg-success text-success-foreground">استحقاق</Badge> },
+            { key: "deduction", title: "الاستقطاعات", badge: <Badge variant="destructive">خصم</Badge> },
+          ] as const).map((sec) => {
+            const items = data.filter((c: any) => c.type === sec.key);
+            return (
+              <Card key={sec.key}>
+                <CardContent className="p-0">
+                  <div className="px-4 py-3 border-b flex items-center justify-between">
+                    <h2 className="font-bold text-lg">{sec.title}</h2>
+                    <span className="text-sm text-muted-foreground">{items.length} بند</span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">اسم البند</TableHead>
+                        <TableHead className="text-right w-20">الترتيب</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">لا يوجد</TableCell></TableRow>}
+                      {items.map((c: any) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell>{c.display_order}</TableCell>
+                          <TableCell>
+                            <Button size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
