@@ -18,6 +18,7 @@ import {
   Building2,
   Menu,
   ShieldCheck,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,7 @@ const baseNav = [
   { to: "/departments", label: "الأقسام", icon: Building2 },
   { to: "/components", label: "بنود المرتب", icon: ListChecks },
   { to: "/payroll", label: "إدخال المرتبات", icon: FileSpreadsheet },
+  { to: "/payslip", label: "مفردة المرتب", icon: Printer },
   { to: "/compare", label: "المقارنة الشهرية", icon: GitCompare },
   { to: "/settings", label: "الإعدادات", icon: Settings },
 ];
