@@ -103,16 +103,9 @@ function PayslipPage() {
 
       <Card className="print:hidden">
         <CardContent className="pt-6 flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-[240px]">
             <Label>الموظف</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger><SelectValue placeholder="اختر موظف" /></SelectTrigger>
-              <SelectContent>
-                {employees.map((e: any) => (
-                  <SelectItem key={e.id} value={e.id}>{e.full_name} — {e.employee_code}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EmployeePicker employees={employees} value={employeeId} onChange={setEmployeeId} />
           </div>
           <div>
             <Label>السنة</Label>
